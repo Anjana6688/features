@@ -1,42 +1,42 @@
-@app.route('/products/<int:product_id>', methods=['GET'])
+"""
+Product Steps
 
-def get_products(product_id):
+Steps file for products.feature
 
-    # Read
+For information on Waiting until elements are present in the HTML see:
+    https://selenium-python.readthedocs.io/waits.html
+"""
+import requests
+from behave import given
 
-@app.route('/products/<int:product_id>', methods=['PUT'])
+# HTTP Return Codes
+HTTP_200_OK = 200
+HTTP_201_CREATED = 201
+HTTP_204_NO_CONTENT = 204
 
-def update_products(product_id):
+@given('the following products')
+def step_impl(context):
+    """ Delete all Products and load new ones """
+    #
+    # List all of the products and delete them one by one
+    #
+    rest_endpoint = f"{context.base_url}/products"
+    context.resp = requests.get(rest_endpoint)
+    assert(context.resp.status_code == HTTP_200_OK)
+    for product in context.resp.json():
+        context.resp = requests.delete(f"{rest_endpoint}/{product['id']}")
+        assert(context.resp.status_code == HTTP_204_NO_CONTENT)
 
-    # Update
-
-@app.route('/products/<int:product_id>', methods=['DELETE'])
-
-def delete_products(product_id):
-
-    # Delete
-
-@app.route('/products', methods=['GET'])
-
-def list_products():
-
-    # List All
-
-@app.route('/products', methods=['GET'])
-
-def search_by_name():
-
-    # List by Name
-
-@app.route('/products', methods=['GET'])
-
-def search_by_category():
-
-    # List by Category
-
-@app.route('/products', methods=['GET'])
-
-def search_by_availability():
-
-    # List by Availability
- 
+    #
+    # load the database with new products
+    #
+    for row in context.table:
+        payload = {
+            "name": row['name'],
+            "description": row['description'],
+            "price": row['price'],
+            "available": row['available'] in ['True', 'true', '1'],
+            "category": row['category']
+        }
+        context.resp = requests.post(rest_endpoint, json=payload)
+        assert context.resp.status_code == HTTP_201_CREATED
